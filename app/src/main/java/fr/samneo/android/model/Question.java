@@ -11,9 +11,9 @@ import icepick.Bundler;
 
 @Parcel
 public class Question implements Bundler<Question> {
-    private String m_question;
-    private List<String> m_choiceList;
-    private int m_answerIndex;
+    String m_question;
+    List<String> m_choiceList;
+    int m_answerIndex;
 
     public Question() {
     }

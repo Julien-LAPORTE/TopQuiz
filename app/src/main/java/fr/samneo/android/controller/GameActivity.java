@@ -9,27 +9,25 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import fr.samneo.android.R;
-import fr.samneo.android.model.Question;
-import fr.samneo.android.model.QuestionBank;
-import fr.samneo.android.model.User;
+
 import icepick.Icepick;
 import icepick.State;
 
+import fr.samneo.android.model.Question;
+import fr.samneo.android.model.QuestionBank;
+import fr.samneo.android.model.User;
+
 public class GameActivity extends AppCompatActivity {
     public static final String BUNDLE_EXTRA_SCORE = "BUNDLE_EXTRA_SCORE";
-    public static final String BUNDLE_STATE_REMAINING_QUESTION_COUNT = "BUNDLE_STATE_REMAINING_QUESTION_COUNT";
 
     private TextView m_questionTextView;
     private Button[] m_arrayButtons = new Button[4];
@@ -37,7 +35,7 @@ public class GameActivity extends AppCompatActivity {
     @State int m_remainingQuestionCount = 3;
     @State(User.class) User m_user;
     @State(QuestionBank.class) QuestionBank m_questionBank;
-    private boolean m_enableTouchEvents = true;
+    @State boolean m_enableTouchEvents = true;
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -52,11 +50,13 @@ public class GameActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Icepick.restoreInstanceState(this, savedInstanceState);
+
         if (m_user == null) m_user = new User();
         if (m_questionBank == null) m_questionBank = generateQuestionBank();
+        if (m_remainingQuestionCount <= 0) endGame();
 
-        Icepick.restoreInstanceState(this, savedInstanceState);
-        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
         m_questionTextView = findViewById(R.id.game_textview_question);
         m_arrayButtons = new Button[4];
@@ -78,7 +78,6 @@ public class GameActivity extends AppCompatActivity {
         displayQuestion(m_questionBank.getCurrentQuestion());
     }
 
-    //TODO : Passer la génération des question à la main activity afin de faire passer les questions en EXTRA à la game activity (pour ne pas les perdres sur destruction de la gameActivity)
     private QuestionBank generateQuestionBank() {
         Question question1 = new Question("Qui est le créateur d'Android?",
                 Arrays.asList(
@@ -107,26 +106,6 @@ public class GameActivity extends AppCompatActivity {
         return new QuestionBank(Arrays.asList(question1, question2, question3));
     }
 
-    private QuestionBank restoreQuestionBank(String[] listQuestions) {
-
-        List<Question> instanceOfQuestions = new ArrayList<Question>();
-        String question = null;
-        List<String> choiceList = new ArrayList<>();
-        int answerIndex = 0;
-        for (int i = 0; i < listQuestions.length; i++) {
-            if (i % 6 == 0) {
-                question = listQuestions[i];
-            } else if (i == 5 || i % 6 == 5) {
-                answerIndex = Integer.valueOf(listQuestions[i]);
-            } else {
-                choiceList.add(listQuestions[i]);
-            }
-            Question instanceQuestion = new Question(question, choiceList, answerIndex);
-            instanceOfQuestions.add(instanceQuestion);
-        }
-        return new QuestionBank(instanceOfQuestions);
-    }
-
     private void displayQuestion(final Question question) {
         m_questionTextView.setText(question.getQuestion());
 
@@ -136,15 +115,20 @@ public class GameActivity extends AppCompatActivity {
         m_answerIndex = question.getAnswerIndex();
     }
 
-    //TODO : Fuite mémoire à corriger sur cette pause
     private void pause(int timeMilliSeconds) {
-        new Handler().postDelayed(new Runnable() {
+        try {
+            Thread.sleep(timeMilliSeconds);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        getNextQuestion();
+        /*new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 getNextQuestion();
                 //dispatchTouchEvent();
             }
-        }, timeMilliSeconds);
+        }, timeMilliSeconds);*/
     }
 
     private boolean isGoodAnswer(View v) {
@@ -177,22 +161,22 @@ public class GameActivity extends AppCompatActivity {
         }
         m_enableTouchEvents = false;
         Toast.makeText(context, text, duration).show();
-
         pause(2500);
     }
 
     private void getNextQuestion() {
         if (!m_questionBank.isEndQuestionList() && m_remainingQuestionCount > 0) {
             displayQuestion(m_questionBank.getNextQuestion());
+            m_enableTouchEvents = true;
+            recreate();
         } else {
             endGame();
         }
-        m_enableTouchEvents = true;
     }
 
     private void endGame() {
-        //TODO : Bug si on clique en dehors de la fenêtre AlertDialog sans faire OK
         AlertDialog.Builder builder = new AlertDialog.Builder(GameActivity.this);
+        builder.setCancelable(false);
         builder.setTitle("C'est terminé!")
                 .setMessage("Votre score est " + m_user.getScore())
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {

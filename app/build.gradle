@@ -29,6 +29,16 @@ android {
 }
 
 dependencies {
+//ICE PICK (Bundle)
+    //OLD version of Gradle : implementation 'frankiesardo:icepick:3.1.0'
+    //OLD version of Gradle : provided 'frankiesardo:icepick-processor:3.1.0'
+    implementation 'frankiesardo:icepick:3.2.0'
+    compileOnly 'frankiesardo:icepick-processor:3.2.0'
+    annotationProcessor 'frankiesardo:icepick-processor:3.2.0'
+
+    //parceler
+    implementation 'org.parceler:parceler-api:1.1.12'
+    annotationProcessor 'org.parceler:parceler:1.1.12'
 
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'com.google.android.material:material:1.5.0'

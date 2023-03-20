@@ -10,7 +10,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -25,20 +24,20 @@ import fr.samneo.android.R;
 import fr.samneo.android.model.Question;
 import fr.samneo.android.model.QuestionBank;
 import fr.samneo.android.model.User;
+import icepick.Icepick;
+import icepick.State;
 
 public class GameActivity extends AppCompatActivity {
     public static final String BUNDLE_EXTRA_SCORE = "BUNDLE_EXTRA_SCORE";
-    public static final String BUNDLE_QUESTIONS = "BUNDLE_QUESTIONS";
     public static final String BUNDLE_STATE_REMAINING_QUESTION_COUNT = "BUNDLE_STATE_REMAINING_QUESTION_COUNT";
 
     private TextView m_questionTextView;
     private Button[] m_arrayButtons = new Button[4];
-    private QuestionBank m_questionBank;
     private int m_answerIndex;
-    private int m_remainingQuestionCount = 3;
-    private User m_user = new User();
+    @State int m_remainingQuestionCount = 3;
+    @State(User.class) User m_user;
+    @State(QuestionBank.class) QuestionBank m_questionBank;
     private boolean m_enableTouchEvents = true;
-
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -48,30 +47,15 @@ public class GameActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putInt(BUNDLE_EXTRA_SCORE, m_user.getScore());
-        outState.putString(BUNDLE_QUESTIONS, m_questionBank.getAllQuestionsForBundle());
-        outState.putInt(BUNDLE_STATE_REMAINING_QUESTION_COUNT, m_remainingQuestionCount);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-
-        m_user.setScore(savedInstanceState.getInt(BUNDLE_EXTRA_SCORE));
-        m_remainingQuestionCount = savedInstanceState.getInt(BUNDLE_STATE_REMAINING_QUESTION_COUNT);
+        Icepick.saveInstanceState(this, outState);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if (m_user == null) m_user = new User();
+        if (m_questionBank == null) m_questionBank = generateQuestionBank();
 
-        if (savedInstanceState == null) {
-            m_questionBank = generateQuestionBank();
-        } else {
-            String questionsBundle = String.valueOf(savedInstanceState.getString(BUNDLE_QUESTIONS));
-            String[] listQuestions = m_questionBank.putAllQuestionsFromBundle(questionsBundle);
-            m_questionBank = restoreQuestionBank(listQuestions);
-        }
-
+        Icepick.restoreInstanceState(this, savedInstanceState);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
         m_questionTextView = findViewById(R.id.game_textview_question);
@@ -94,6 +78,7 @@ public class GameActivity extends AppCompatActivity {
         displayQuestion(m_questionBank.getCurrentQuestion());
     }
 
+    //TODO : Passer la génération des question à la main activity afin de faire passer les questions en EXTRA à la game activity (pour ne pas les perdres sur destruction de la gameActivity)
     private QuestionBank generateQuestionBank() {
         Question question1 = new Question("Qui est le créateur d'Android?",
                 Arrays.asList(
@@ -123,20 +108,17 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private QuestionBank restoreQuestionBank(String[] listQuestions) {
-        
+
         List<Question> instanceOfQuestions = new ArrayList<Question>();
         String question = null;
         List<String> choiceList = new ArrayList<>();
         int answerIndex = 0;
         for (int i = 0; i < listQuestions.length; i++) {
             if (i % 6 == 0) {
-                Log.d("Affichage Question :", listQuestions[i]);
                 question = listQuestions[i];
             } else if (i == 5 || i % 6 == 5) {
-                Log.d("Affichage Index :", listQuestions[i]);
                 answerIndex = Integer.valueOf(listQuestions[i]);
             } else {
-                Log.d("Affichage choix :", listQuestions[i]);
                 choiceList.add(listQuestions[i]);
             }
             Question instanceQuestion = new Question(question, choiceList, answerIndex);

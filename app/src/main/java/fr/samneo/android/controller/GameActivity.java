@@ -11,14 +11,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.Arrays;
 
-import fr.samneo.android.R;
 
+import fr.samneo.android.databinding.ActivityGameBinding;
 import icepick.Icepick;
 import icepick.State;
 
@@ -26,11 +24,9 @@ import fr.samneo.android.model.Question;
 import fr.samneo.android.model.QuestionBank;
 import fr.samneo.android.model.User;
 
-public class GameActivity extends AppCompatActivity {
+public class GameActivity extends AppCompatActivity implements View.OnClickListener {
     public static final String BUNDLE_EXTRA_SCORE = "BUNDLE_EXTRA_SCORE";
-
-    private TextView m_questionTextView;
-    private Button[] m_arrayButtons = new Button[4];
+    private ActivityGameBinding m_binding;
     private int m_answerIndex;
     @State int m_remainingQuestionCount = 3;
     @State(User.class) User m_user;
@@ -49,6 +45,11 @@ public class GameActivity extends AppCompatActivity {
     }
 
     @Override
+    public void onClick(View v) {
+        showToastAnswer(v);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Icepick.restoreInstanceState(this, savedInstanceState);
@@ -57,24 +58,15 @@ public class GameActivity extends AppCompatActivity {
         if (m_questionBank == null) m_questionBank = generateQuestionBank();
         if (m_remainingQuestionCount <= 0) endGame();
 
-        setContentView(R.layout.activity_game);
-        m_questionTextView = findViewById(R.id.game_textview_question);
-        m_arrayButtons = new Button[4];
-        //Un boucle qui initialise les 4 boutons du layout dans le tableau
-        int temp;
-        for (int i = 0; i < 4; i++) {
-            temp = getResources().getIdentifier("game_button_" + i, "id", getPackageName());
-            m_arrayButtons[i] = (Button) findViewById(temp);
+        m_binding = ActivityGameBinding.inflate(getLayoutInflater());
+        View view = m_binding.getRoot();
+        setContentView(view);
 
-            m_arrayButtons[i].setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
+        m_binding.gameButton0.setOnClickListener(this);
+        m_binding.gameButton1.setOnClickListener(this);
+        m_binding.gameButton2.setOnClickListener(this);
+        m_binding.gameButton3.setOnClickListener(this);
 
-                    showToastAnswer(v);
-
-                }
-            });
-        }
         displayQuestion(m_questionBank.getCurrentQuestion());
     }
 
@@ -107,11 +99,13 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void displayQuestion(final Question question) {
-        m_questionTextView.setText(question.getQuestion());
+        m_binding.gameTextviewQuestion.setText(question.getQuestion());
 
-        for (int i = 0; i < 4; i++) {
-            m_arrayButtons[i].setText(question.getChoiceList().get(i));
-        }
+        m_binding.gameButton0.setText(question.getChoiceList().get(0));
+        m_binding.gameButton1.setText(question.getChoiceList().get(1));
+        m_binding.gameButton2.setText(question.getChoiceList().get(2));
+        m_binding.gameButton3.setText(question.getChoiceList().get(3));
+
         m_answerIndex = question.getAnswerIndex();
     }
 
@@ -132,14 +126,14 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private boolean isGoodAnswer(View v) {
-        int index = 4;
-        if (v == m_arrayButtons[0]) {
+        int index;
+        if (v == m_binding.gameButton0) {
             index = 0;
-        } else if (v == m_arrayButtons[1]) {
+        } else if (v == m_binding.gameButton1) {
             index = 1;
-        } else if (v == m_arrayButtons[2]) {
+        } else if (v == m_binding.gameButton2) {
             index = 2;
-        } else if (v == m_arrayButtons[3]) {
+        } else if (v == m_binding.gameButton3) {
             index = 3;
         } else {
             throw new IllegalStateException("Unknow clicked view : " + v);
@@ -155,7 +149,7 @@ public class GameActivity extends AppCompatActivity {
 
         if (isGoodAnswer(v)) {
             text = "Bonne réponse";
-            m_user.setScore(m_user.getScore() + 1);
+            m_user.setScore(+1);
         } else {
             text = "Mauvaise réponse";
         }
